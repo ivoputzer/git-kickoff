@@ -1,0 +1,54 @@
+#!/bin/bash
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+echo ">> git-kickoff [$current_branch]"
+
+# # # git-up might be faster than looping through branches
+#
+# if which git-up > /dev/null; then
+# 	echo "\033[1;32m✓ git-up found, let's use that one to pull changes...\033[0m"; has_gitup=1
+# else
+# 	echo "\033[1;31m✗ git-up is not available, we gonna use the easy way... \033[0m"; has_gitup=0
+# fi
+#
+# # # 
+
+git fetch --all &> /dev/null
+
+if [ $? -eq 0 ]; then
+	printf "\033[1;32m✓ all upstream branches are fetched...\033[0m\n"
+else
+	printf "\033[1;31m✗ unable to fetch remote branches... \033[0m\n"
+fi
+
+for branch in `git branch -r | grep -v HEAD | grep -v master`; do
+
+	if ! git show-ref refs/heads/${branch:7} &> /dev/null; then
+
+		if git checkout -t $branch &> /dev/null; then
+
+			printf "\033[1;32m✓ branch ${branch:7} set up to track $branch... [loading...]\033[0m\r"
+
+			git pull origin ${branch:7} &> /dev/null
+
+			printf "\033[1;32m✓ branch ${branch:7} set up to track $branch... [up to date]\033[0m\n"
+
+		else
+
+			printf "\033[1;31m✗ unable set branch $branch to track ${branch:7}... \033[0m"
+
+		fi
+
+	else
+
+		printf "\033[1;32m✓ branch ${branch:7} already exists... [loading...] \033[0m\r"
+
+		git pull origin ${branch:7} &> /dev/null
+
+		printf "\033[1;32m✓ branch ${branch:7} already exists... [up to date]\033[0m\n"
+	fi
+
+done
+
+git checkout $current_branch &> /dev/null # move back to original branch
